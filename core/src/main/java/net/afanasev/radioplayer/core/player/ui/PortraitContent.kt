@@ -21,6 +21,7 @@ fun PortraitContent(
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
     logo: @Composable () -> Unit = {},
+    nextTrackPrefix: String = "Next",
 ) {
     Column(
         modifier = modifier,
@@ -42,6 +43,7 @@ fun PortraitContent(
         NextTrack(
             text = nextTrackTitle,
             modifier = Modifier.fillMaxWidth(0.9f),
+            prefix = nextTrackPrefix,
         )
         Spacer(modifier = Modifier.height(32.dp))
         PlayButton(

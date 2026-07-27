@@ -25,6 +25,7 @@ fun LandscapeContent(
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
     logo: @Composable () -> Unit = {},
+    nextTrackPrefix: String = "Next",
 ) {
     Row(
         modifier = modifier,
@@ -57,6 +58,7 @@ fun LandscapeContent(
             NextTrack(
                 text = nextTrackTitle,
                 modifier = Modifier.fillMaxWidth(0.9f),
+                prefix = nextTrackPrefix,
             )
             Spacer(modifier = Modifier.height(24.dp))
             PlayButton(
