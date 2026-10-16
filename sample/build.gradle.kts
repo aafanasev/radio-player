@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "net.afanasev.radioplayer.sample"
-        minSdk = 29
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
