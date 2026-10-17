@@ -33,50 +33,24 @@ private val DefaultGradients: List<Pair<Color, Color>> = listOf(
 )
 
 /**
- * Animates between a set of gradients while [artworkUri] is [defaultArtworkUri] (nothing playing
- * yet), then crossfades to a blurred artwork background once real artwork is available.
- * [gradients] defaults to two neutral gradients; pass your own for on-brand placeholder colors.
+ * Shows [placeholder] while [artworkUri] is [defaultArtworkUri] (nothing playing yet), then
+ * crossfades to a blurred artwork background once real artwork is available. [placeholder]
+ * receives [modifier] so it fills the same area as the artwork; it defaults to
+ * [GradientPlaceholder] with neutral colors.
  */
 @Composable
 fun Background(
     artworkUri: String,
     defaultArtworkUri: String,
     modifier: Modifier = Modifier,
-    gradients: List<Pair<Color, Color>> = DefaultGradients,
+    placeholder: @Composable (Modifier) -> Unit = { GradientPlaceholder(modifier = it) },
 ) {
     Crossfade(
         targetState = artworkUri == defaultArtworkUri,
         animationSpec = tween(1_000),
-    ) { showGradient ->
-        if (showGradient) {
-            val size = gradients.size
-            var current by remember { mutableIntStateOf(Random.nextInt(size)) }
-            val topColor = remember { Animatable(gradients[current].first) }
-            val bottomColor = remember { Animatable(gradients[current].second) }
-
-            LaunchedEffect(Unit) {
-                while (true) {
-                    delay(10_000)
-                    current = (current + 1) % size
-                }
-            }
-
-            LaunchedEffect(current) {
-                val next = gradients[current]
-                topColor.animateTo(next.first, animationSpec = tween(durationMillis = 3_000))
-                bottomColor.animateTo(next.second, animationSpec = tween(durationMillis = 3_000))
-            }
-
-            Box(
-                modifier = modifier.background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            topColor.value,
-                            bottomColor.value,
-                        )
-                    )
-                ),
-            )
+    ) { showPlaceholder ->
+        if (showPlaceholder) {
+            placeholder(modifier)
         } else {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -93,4 +67,66 @@ fun Background(
             )
         }
     }
+}
+
+@Deprecated(
+    message = "Pass a placeholder instead.",
+    replaceWith = ReplaceWith(
+        "Background(artworkUri, defaultArtworkUri, modifier, " +
+            "placeholder = { GradientPlaceholder(modifier = it, gradients = gradients) })"
+    ),
+)
+@Composable
+fun Background(
+    artworkUri: String,
+    defaultArtworkUri: String,
+    gradients: List<Pair<Color, Color>>,
+    modifier: Modifier = Modifier,
+) {
+    Background(
+        artworkUri = artworkUri,
+        defaultArtworkUri = defaultArtworkUri,
+        modifier = modifier,
+        placeholder = { GradientPlaceholder(modifier = it, gradients = gradients) },
+    )
+}
+
+/**
+ * Vertical gradient that starts from a random entry of [gradients] and moves to the next one
+ * every 10 seconds. [gradients] defaults to two neutral gradients; pass your own for on-brand
+ * placeholder colors.
+ */
+@Composable
+fun GradientPlaceholder(
+    modifier: Modifier = Modifier,
+    gradients: List<Pair<Color, Color>> = DefaultGradients,
+) {
+    val size = gradients.size
+    var current by remember { mutableIntStateOf(Random.nextInt(size)) }
+    val topColor = remember { Animatable(gradients[current].first) }
+    val bottomColor = remember { Animatable(gradients[current].second) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(10_000)
+            current = (current + 1) % size
+        }
+    }
+
+    LaunchedEffect(current) {
+        val next = gradients[current]
+        topColor.animateTo(next.first, animationSpec = tween(durationMillis = 3_000))
+        bottomColor.animateTo(next.second, animationSpec = tween(durationMillis = 3_000))
+    }
+
+    Box(
+        modifier = modifier.background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    topColor.value,
+                    bottomColor.value,
+                )
+            )
+        ),
+    )
 }

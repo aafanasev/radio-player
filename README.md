@@ -78,6 +78,19 @@ PortraitContent(
 )
 ```
 
+For a full-screen blurred-artwork backdrop, put `Background` behind the content. Until real
+artwork arrives it shows a placeholder — cycling neutral gradients by default, or whatever you
+pass:
+
+```kotlin
+Background(
+    artworkUri = artworkUri,
+    defaultArtworkUri = config.defaultArtworkUri,
+    modifier = Modifier.fillMaxSize(),
+    placeholder = { GradientPlaceholder(modifier = it, gradients = myBrandGradients) },
+)
+```
+
 Run `:sample` to see it end to end.
 
 ## Contributing
