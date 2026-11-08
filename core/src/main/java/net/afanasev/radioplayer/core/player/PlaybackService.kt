@@ -26,6 +26,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import net.afanasev.radioplayer.core.RadioPlayer
 import net.afanasev.radioplayer.core.RadioPlayerConfig
 import net.afanasev.radioplayer.core.RadioPlayerHost
 
@@ -45,6 +46,7 @@ class PlaybackService : MediaLibraryService() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val host by lazy { application as RadioPlayerHost }
     private val config: RadioPlayerConfig by lazy { host.radioPlayerConfig }
+    private val radioPlayer by lazy { RadioPlayer.get(this) }
 
     private val noisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -52,6 +54,8 @@ class PlaybackService : MediaLibraryService() {
             if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
                 mediaLibrarySession?.let {
                     if (it.player.isPlaying) {
+                        // pause() too, so playWhenReady is false and onTaskRemoved can stop us.
+                        it.player.pause()
                         it.player.stop()
                     }
                 }
@@ -132,6 +136,7 @@ class PlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         destroyMediaSession()
         unregisterReceiver(noisyReceiver)
+        radioPlayer.send(PlayerEvent.ServiceDestroyed)
         super.onDestroy()
     }
 
@@ -145,6 +150,9 @@ class PlaybackService : MediaLibraryService() {
                 true, /* handleAudioFocus */
             )
             .build()
+
+        // Feeds every playback change, whoever caused it, into the app-scoped state machine.
+        player.addListener(radioPlayer.playerListener)
 
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -190,6 +198,7 @@ class PlaybackService : MediaLibraryService() {
         artworkJob?.cancel()
         serviceScope.cancel()
         mediaLibrarySession?.let {
+            it.player.removeListener(radioPlayer.playerListener)
             it.player.release()
             it.release()
             mediaLibrarySession = null

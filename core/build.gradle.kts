@@ -29,6 +29,10 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        // PlaybackException reads SystemClock in its constructor; let reducer tests build one.
+        unitTests.isReturnDefaultValues = true
+    }
     publishing {
         singleVariant("release") {
             withSourcesJar()

@@ -35,27 +35,20 @@ class SampleActivity : ComponentActivity() {
 @Composable
 private fun PlayerScreen(modifier: Modifier = Modifier) {
     val viewModel: PlayerViewModel = viewModel()
-    val title by viewModel.title.collectAsState()
-    val nextTrackTitle by viewModel.nextTrackTitle.collectAsState()
-    val buttonState by viewModel.buttonState.collectAsState()
-    val artworkUri by viewModel.artworkUri.collectAsState()
+    val state by viewModel.state.collectAsState()
 
     if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
         LandscapeContent(
-            title = title,
-            nextTrackTitle = nextTrackTitle,
-            buttonState = buttonState,
-            artworkUri = artworkUri,
-            onPlayClick = viewModel::playPause,
+            state = state,
+            defaultArtworkUri = viewModel.defaultArtworkUri,
+            onPlayClick = viewModel::onPlayPause,
             modifier = modifier.fillMaxSize(),
         )
     } else {
         PortraitContent(
-            title = title,
-            nextTrackTitle = nextTrackTitle,
-            buttonState = buttonState,
-            artworkUri = artworkUri,
-            onPlayClick = viewModel::playPause,
+            state = state,
+            defaultArtworkUri = viewModel.defaultArtworkUri,
+            onPlayClick = viewModel::onPlayPause,
             modifier = modifier.fillMaxSize(),
         )
     }

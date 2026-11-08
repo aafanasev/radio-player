@@ -11,7 +11,7 @@ import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import net.afanasev.radioplayer.core.analytics.PlayerAnalytics
-import net.afanasev.radioplayer.core.player.PlayerButtonState
+import net.afanasev.radioplayer.core.player.Playback
 import net.afanasev.radioplayer.core.theme.PlayerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -23,7 +23,7 @@ private class FakePlayerAnalytics : PlayerAnalytics {
     val metadataErrors = mutableListOf<Pair<String, Throwable>>()
     val artworkMismatches = mutableListOf<Int>()
 
-    override fun onPlayButtonClick(state: PlayerButtonState) = Unit
+    override fun onPlayButtonClick(playback: Playback) = Unit
     override fun onThemeSelect(theme: PlayerTheme) = Unit
     override fun onMetadataFetchError(source: String, throwable: Throwable) {
         metadataErrors += source to throwable
