@@ -3,11 +3,20 @@ package net.afanasev.radioplayer.core.player
 internal sealed interface PlayerEffect {
     data object ReleaseController : PlayerEffect
 
-    /** setMediaItem + prepare + play. */
+    /**
+     * stop, setMediaItem, play, prepare, in that order: playWhenReady may be false only while
+     * the player is idle, which lets the reducer tell an outside pause from our own start.
+     */
     data class StartPlayback(val streamUrl: String) : PlayerEffect
 
-    /** stop(), not just pause(): a paused live stream goes stale. */
+    /**
+     * pause() + stop(): stop because a paused live stream goes stale, pause so playWhenReady is
+     * false and the service can shut down.
+     */
     data object StopPlayback : PlayerEffect
+
+    /** stop() only: keeps playWhenReady true while reconnecting, see the reducer. */
+    data object StopForRetry : PlayerEffect
 
     /** Cancels the previous fetch. */
     data class FetchNextTrack(val forTitle: String) : PlayerEffect

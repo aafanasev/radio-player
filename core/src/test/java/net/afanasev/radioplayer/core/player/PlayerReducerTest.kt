@@ -12,6 +12,7 @@ import net.afanasev.radioplayer.core.player.PlayerEffect.ReleaseController
 import net.afanasev.radioplayer.core.player.PlayerEffect.ScheduleRetry
 import net.afanasev.radioplayer.core.player.PlayerEffect.StartConnectTimeout
 import net.afanasev.radioplayer.core.player.PlayerEffect.StartPlayback
+import net.afanasev.radioplayer.core.player.PlayerEffect.StopForRetry
 import net.afanasev.radioplayer.core.player.PlayerEffect.StopPlayback
 import net.afanasev.radioplayer.core.player.PlayerEffect.TrackAnalytics
 import net.afanasev.radioplayer.core.player.PlayerEvent.ConnectTimedOut
@@ -99,9 +100,23 @@ class PlayerReducerTest {
     }
 
     @Test
-    fun `Disconnected ignores clicks and player changes`() {
+    fun `Disconnected ignores clicks and idle players`() {
         assertUnchanged(state(Playback.Disconnected), PlayPauseClicked)
-        assertUnchanged(state(Playback.Disconnected), PlayerChanged(playing))
+        assertUnchanged(state(Playback.Disconnected), PlayerChanged(stopped))
+    }
+
+    @Test
+    fun `Disconnected follows a player started with no UI alive`() {
+        // e.g. Android Auto on a fresh process: no ControllerConnected will come on its own.
+        assertEquals(Next(state(Playback.Playing)), reduce(state(Playback.Disconnected), PlayerChanged(playing)))
+        assertEquals(Next(state(Playback.Buffering)), reduce(state(Playback.Disconnected), PlayerChanged(stalled)))
+    }
+
+    @Test
+    fun `network error after a start with no UI alive is retried`() {
+        val buffering = reduce(state(Playback.Disconnected), PlayerChanged(stalled)).state
+        val next = reduce(buffering, PlayerChanged(snapshot(playbackState = Player.STATE_IDLE, error = networkError)))
+        assertEquals(Playback.Reconnecting(1), next.state.playback)
     }
 
     // --- Starting ---------------------------------------------------------------------------
@@ -159,10 +174,29 @@ class PlayerReducerTest {
 
     @Test
     fun `Connecting ignores intermediate snapshots of its own start`() {
-        // setMediaItem, prepare and play each produce their own onEvents batch.
-        for (s in listOf(snapshot(false, Player.STATE_IDLE), snapshot(false, Player.STATE_BUFFERING), stalled)) {
+        // stop, setMediaItem, play and prepare each produce their own onEvents batch.
+        for (s in listOf(snapshot(false, Player.STATE_IDLE), stopped, stalled)) {
             assertUnchanged(state(Playback.Connecting), PlayerChanged(s))
         }
+    }
+
+    @Test
+    fun `Connecting paused from outside goes to Idle and cancels the timeout`() {
+        for (s in listOf(snapshot(false, Player.STATE_BUFFERING), paused)) {
+            val next = reduce(state(Playback.Connecting), PlayerChanged(s))
+            assertEquals(Next(state(Playback.Idle), listOf(CancelConnectTimeout, CancelRetry)), next)
+        }
+    }
+
+    @Test
+    fun `Reconnecting paused from outside goes to Idle and cancels the retry`() {
+        val next = reduce(state(Playback.Reconnecting(2)), PlayerChanged(snapshot(false, Player.STATE_IDLE)))
+        assertEquals(Next(state(Playback.Idle), listOf(CancelConnectTimeout, CancelRetry)), next)
+    }
+
+    @Test
+    fun `Reconnecting ignores snapshots of its own retry`() {
+        for (s in listOf(stopped, stalled)) assertUnchanged(state(Playback.Reconnecting(2)), PlayerChanged(s))
     }
 
     @Test
@@ -243,11 +277,11 @@ class PlayerReducerTest {
     // --- Timers -----------------------------------------------------------------------------
 
     @Test
-    fun `Connecting + ConnectTimedOut stops and goes to Reconnecting 1`() {
+    fun `Connecting + ConnectTimedOut stops, keeping playWhenReady, and goes to Reconnecting 1`() {
         val next = reduce(state(Playback.Connecting), ConnectTimedOut)
         assertEquals(state(Playback.Reconnecting(1)), next.state)
         assertEquals(
-            listOf(StopPlayback, CancelConnectTimeout, ScheduleRetry(1, 1_000), TrackAnalytics(Reconnect(1, 1_000))),
+            listOf(StopForRetry, CancelConnectTimeout, ScheduleRetry(1, 1_000), TrackAnalytics(Reconnect(1, 1_000))),
             next.effects,
         )
     }

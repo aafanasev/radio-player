@@ -12,6 +12,7 @@ import net.afanasev.radioplayer.core.player.PlayerEffect.ReleaseController
 import net.afanasev.radioplayer.core.player.PlayerEffect.ScheduleRetry
 import net.afanasev.radioplayer.core.player.PlayerEffect.StartConnectTimeout
 import net.afanasev.radioplayer.core.player.PlayerEffect.StartPlayback
+import net.afanasev.radioplayer.core.player.PlayerEffect.StopForRetry
 import net.afanasev.radioplayer.core.player.PlayerEffect.StopPlayback
 import net.afanasev.radioplayer.core.player.PlayerEffect.TrackAnalytics
 
@@ -138,21 +139,33 @@ private fun onPlayerChanged(state: PlayerState, s: PlayerSnapshot, policy: Playe
         Next(state.copy(playback = playback), effects.toList())
 
     val stoppedFromOutside = !s.playWhenReady || s.playbackState == Player.STATE_IDLE
+    val pausedFromOutside = { to(Playback.Idle, CancelConnectTimeout, CancelRetry) }
     return when (p) {
-        // The controller's own snapshot (ControllerConnected) decides where we start.
-        Playback.Disconnected -> Next(state)
-
-        // Started from outside: notification, Bluetooth, Android Auto.
-        Playback.Idle, is Playback.Error -> when {
+        // Started from outside: notification, Bluetooth, Android Auto. Disconnected too, since
+        // with no UI alive (e.g. Android Auto on a fresh process) nothing else would connect a
+        // controller; becoming active connects one.
+        Playback.Disconnected, Playback.Idle, is Playback.Error -> when {
             s.isPlaying -> to(Playback.Playing)
             s.playWhenReady && s.playbackState == Player.STATE_BUFFERING -> to(Playback.Buffering)
             else -> Next(state)
         }
 
-        // Our own start goes through several intermediate snapshots (setMediaItem, prepare,
-        // play), so only "it plays" moves us on; failures arrive as errors or the timeout.
-        Playback.Connecting, is Playback.Reconnecting ->
-            if (s.isPlaying) to(Playback.Playing, CancelConnectTimeout, CancelRetry) else Next(state)
+        // Our own start runs stop, setMediaItem, play, prepare (see StartPlayback), so
+        // playWhenReady is false only while the player is still idle. Anything else with
+        // playWhenReady false is a pause from outside.
+        Playback.Connecting -> when {
+            s.isPlaying -> to(Playback.Playing, CancelConnectTimeout, CancelRetry)
+            !s.playWhenReady && s.playbackState != Player.STATE_IDLE -> pausedFromOutside()
+            else -> Next(state)
+        }
+
+        // playWhenReady stays true while reconnecting (StopForRetry keeps it), so false means
+        // a pause from outside, which must also cancel the pending retry.
+        is Playback.Reconnecting -> when {
+            s.isPlaying -> to(Playback.Playing, CancelConnectTimeout, CancelRetry)
+            !s.playWhenReady -> pausedFromOutside()
+            else -> Next(state)
+        }
 
         Playback.Playing -> when {
             s.isPlaying -> Next(state)
@@ -192,11 +205,10 @@ private fun reconnectOrFail(
     stop: Boolean,
     policy: PlayerPolicy,
 ): Next {
-    val stopEffects = if (stop) listOf(StopPlayback) else emptyList()
     if (attempt >= policy.maxReconnectAttempts) {
         return Next(
             state.copy(playback = Playback.Error(ErrorReason.NETWORK)),
-            stopEffects + listOf(
+            (if (stop) listOf(StopPlayback) else emptyList()) + listOf(
                 CancelConnectTimeout,
                 CancelRetry,
                 TrackAnalytics(PlaybackError(ErrorReason.NETWORK, cause)),
@@ -207,7 +219,7 @@ private fun reconnectOrFail(
     val delayMs = policy.retryDelayMs(next)
     return Next(
         state.copy(playback = Playback.Reconnecting(next)),
-        stopEffects + listOf(
+        (if (stop) listOf(StopForRetry) else emptyList()) + listOf(
             CancelConnectTimeout,
             ScheduleRetry(next, delayMs),
             TrackAnalytics(Reconnect(next, delayMs)),

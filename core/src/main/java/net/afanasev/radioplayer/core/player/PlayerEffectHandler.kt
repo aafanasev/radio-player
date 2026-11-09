@@ -54,17 +54,20 @@ internal class PlayerEffectHandler(
                 if (controllerNeeded) connectController()
             }
 
+            // Order matters, see PlayerEffect.StartPlayback.
             is PlayerEffect.StartPlayback -> command {
+                it.stop()
                 it.setMediaItem(MediaItem.fromUri(effect.streamUrl))
-                it.prepare()
                 it.play()
+                it.prepare()
             }
 
             PlayerEffect.StopPlayback -> command {
-                // pause() as well, so playWhenReady is false and onTaskRemoved lets the service stop.
                 it.pause()
                 it.stop()
             }
+
+            PlayerEffect.StopForRetry -> command { it.stop() }
 
             is PlayerEffect.FetchNextTrack -> {
                 nextTrackJob?.cancel()
