@@ -14,7 +14,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import net.afanasev.radioplayer.core.player.Playback
 import net.afanasev.radioplayer.core.player.PlayerButtonState
+
+/**
+ * Same layout as the [PlayerButtonState] overload, but the play button follows [playback]:
+ * it stays clickable while loading, so a tap cancels a connect or reconnect.
+ */
+@Composable
+fun LandscapeContent(
+    title: String,
+    nextTrackTitle: String,
+    playback: Playback,
+    artworkUri: String,
+    onPlayClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    logo: @Composable () -> Unit = {},
+    nextTrackPrefix: String = "Next",
+) {
+    LandscapeContentLayout(title, nextTrackTitle, artworkUri, modifier, logo, nextTrackPrefix) {
+        PlayButton(playback = playback, onClick = onPlayClick)
+    }
+}
 
 @Composable
 fun LandscapeContent(
@@ -26,6 +47,21 @@ fun LandscapeContent(
     modifier: Modifier = Modifier,
     logo: @Composable () -> Unit = {},
     nextTrackPrefix: String = "Next",
+) {
+    LandscapeContentLayout(title, nextTrackTitle, artworkUri, modifier, logo, nextTrackPrefix) {
+        PlayButton(buttonState = buttonState, onClick = onPlayClick)
+    }
+}
+
+@Composable
+private fun LandscapeContentLayout(
+    title: String,
+    nextTrackTitle: String,
+    artworkUri: String,
+    modifier: Modifier,
+    logo: @Composable () -> Unit,
+    nextTrackPrefix: String,
+    playButton: @Composable () -> Unit,
 ) {
     Row(
         modifier = modifier,
@@ -61,10 +97,7 @@ fun LandscapeContent(
                 prefix = nextTrackPrefix,
             )
             Spacer(modifier = Modifier.height(24.dp))
-            PlayButton(
-                buttonState = buttonState,
-                onClick = onPlayClick,
-            )
+            playButton()
         }
     }
 }
@@ -87,7 +120,7 @@ private fun LandscapeContentPreviewLoading() {
     LandscapeContent(
         title = "",
         nextTrackTitle = "",
-        buttonState = PlayerButtonState.LOADING,
+        playback = Playback.Connecting,
         artworkUri = "",
         onPlayClick = {},
     )

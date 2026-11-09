@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.afanasev.radioplayer.core.player.PlayerViewModel
-import net.afanasev.radioplayer.core.player.toButtonState
 import net.afanasev.radioplayer.core.player.ui.LandscapeContent
 import net.afanasev.radioplayer.core.player.ui.PortraitContent
 
@@ -44,7 +43,7 @@ private fun PlayerScreen(modifier: Modifier = Modifier) {
         LandscapeContent(
             title = nowPlaying.title,
             nextTrackTitle = nowPlaying.nextTrackTitle,
-            buttonState = state.playback.toButtonState(),
+            playback = state.playback,
             artworkUri = artworkUri,
             onPlayClick = viewModel::onPlayPause,
             modifier = modifier.fillMaxSize(),
@@ -53,7 +52,7 @@ private fun PlayerScreen(modifier: Modifier = Modifier) {
         PortraitContent(
             title = nowPlaying.title,
             nextTrackTitle = nowPlaying.nextTrackTitle,
-            buttonState = state.playback.toButtonState(),
+            playback = state.playback,
             artworkUri = artworkUri,
             onPlayClick = viewModel::onPlayPause,
             modifier = modifier.fillMaxSize(),
