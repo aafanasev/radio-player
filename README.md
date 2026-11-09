@@ -69,8 +69,10 @@ val viewModel: PlayerViewModel = viewModel()
 val state by viewModel.state.collectAsState()
 
 PortraitContent(
-    state = state,
-    defaultArtworkUri = viewModel.defaultArtworkUri,
+    title = state.nowPlaying.title,
+    nextTrackTitle = state.nowPlaying.nextTrackTitle,
+    buttonState = state.playback.toButtonState(),
+    artworkUri = state.nowPlaying.artworkUri ?: viewModel.defaultArtworkUri,
     onPlayClick = viewModel::onPlayPause,
     logo = { /* your branding */ },
 )
@@ -87,9 +89,8 @@ Playback is driven by `RadioPlayer`, an app-scoped state machine (`RadioPlayer.g
 - `nowPlaying` — title, artwork and next track, kept across pauses and errors.
 
 Because it lives outside any screen, starting or stopping from the notification, Bluetooth or
-Android Auto is reflected in the UI. The loading button is clickable to cancel, and
-`PlaybackStatus` (shown by `PortraitContent`/`LandscapeContent`) explains reconnects and errors;
-pass `statusText` to localize it.
+Android Auto is reflected in the UI. `PlayButton(playback = …)` stays clickable while loading, so
+a tap cancels a connect or reconnect.
 
 For a full-screen blurred-artwork backdrop, put `Background` behind the content. Until real
 artwork arrives it shows a placeholder — cycling neutral gradients by default, or whatever you

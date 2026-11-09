@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.afanasev.radioplayer.core.player.PlayerViewModel
+import net.afanasev.radioplayer.core.player.toButtonState
 import net.afanasev.radioplayer.core.player.ui.LandscapeContent
 import net.afanasev.radioplayer.core.player.ui.PortraitContent
 
@@ -36,18 +37,24 @@ class SampleActivity : ComponentActivity() {
 private fun PlayerScreen(modifier: Modifier = Modifier) {
     val viewModel: PlayerViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val nowPlaying = state.nowPlaying
+    val artworkUri = nowPlaying.artworkUri ?: viewModel.defaultArtworkUri
 
     if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
         LandscapeContent(
-            state = state,
-            defaultArtworkUri = viewModel.defaultArtworkUri,
+            title = nowPlaying.title,
+            nextTrackTitle = nowPlaying.nextTrackTitle,
+            buttonState = state.playback.toButtonState(),
+            artworkUri = artworkUri,
             onPlayClick = viewModel::onPlayPause,
             modifier = modifier.fillMaxSize(),
         )
     } else {
         PortraitContent(
-            state = state,
-            defaultArtworkUri = viewModel.defaultArtworkUri,
+            title = nowPlaying.title,
+            nextTrackTitle = nowPlaying.nextTrackTitle,
+            buttonState = state.playback.toButtonState(),
+            artworkUri = artworkUri,
             onPlayClick = viewModel::onPlayPause,
             modifier = modifier.fillMaxSize(),
         )
