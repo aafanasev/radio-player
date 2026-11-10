@@ -1,4 +1,4 @@
-package net.afanasev.radioplayer.core.player
+package net.afanasev.radioplayer.core.player.fsm
 
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException

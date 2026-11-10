@@ -17,14 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import net.afanasev.radioplayer.core.player.Playback
+import net.afanasev.radioplayer.core.player.fsm.Playback
 import net.afanasev.radioplayer.core.player.PlayerButtonState
 import net.afanasev.radioplayer.core.player.toButtonState
 
 /**
- * Play button driven by [playback]. Unlike the [PlayerButtonState] overload, it stays clickable
- * while connecting, buffering or reconnecting, so a tap cancels; it's only disabled while no
- * controller is connected yet ([Playback.Disconnected]).
+ * Play button driven by [playback]. It stays clickable while connecting, buffering or
+ * reconnecting, so a tap cancels; it's only disabled while no controller is connected yet
+ * ([Playback.Disconnected]).
  */
 @Composable
 fun PlayButton(
@@ -34,7 +34,7 @@ fun PlayButton(
     containerColor: Color = MaterialTheme.colorScheme.primary,
     disabledContainerColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
 ) {
-    PlayButton(
+    PlayButtonImpl(
         buttonState = playback.toButtonState(),
         enabled = playback != Playback.Disconnected,
         onClick = onClick,
@@ -45,25 +45,7 @@ fun PlayButton(
 }
 
 @Composable
-fun PlayButton(
-    buttonState: PlayerButtonState,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.primary,
-    disabledContainerColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-) {
-    PlayButton(
-        buttonState = buttonState,
-        enabled = buttonState != PlayerButtonState.LOADING,
-        onClick = onClick,
-        modifier = modifier,
-        containerColor = containerColor,
-        disabledContainerColor = disabledContainerColor,
-    )
-}
-
-@Composable
-private fun PlayButton(
+private fun PlayButtonImpl(
     buttonState: PlayerButtonState,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -122,17 +104,17 @@ private fun PlayButton(
 @Preview
 @Composable
 private fun PlayButtonLoadingPreview() {
-    PlayButton(buttonState = PlayerButtonState.LOADING, onClick = {})
+    PlayButton(playback = Playback.Connecting, onClick = {})
 }
 
 @Preview
 @Composable
 private fun PlayButtonPlayingPreview() {
-    PlayButton(buttonState = PlayerButtonState.PLAYING, onClick = {})
+    PlayButton(playback = Playback.Playing, onClick = {})
 }
 
 @Preview
 @Composable
 private fun PlayButtonPausedPreview() {
-    PlayButton(buttonState = PlayerButtonState.PAUSED, onClick = {})
+    PlayButton(playback = Playback.Idle, onClick = {})
 }

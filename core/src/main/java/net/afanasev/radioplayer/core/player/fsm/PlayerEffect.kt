@@ -1,4 +1,4 @@
-package net.afanasev.radioplayer.core.player
+package net.afanasev.radioplayer.core.player.fsm
 
 internal sealed interface PlayerEffect {
     data object ReleaseController : PlayerEffect

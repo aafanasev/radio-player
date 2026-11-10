@@ -10,13 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import net.afanasev.radioplayer.core.player.Playback
-import net.afanasev.radioplayer.core.player.PlayerButtonState
+import net.afanasev.radioplayer.core.player.fsm.Playback
 
-/**
- * Same layout as the [PlayerButtonState] overload, but the play button follows [playback]:
- * it stays clickable while loading, so a tap cancels a connect or reconnect.
- */
+/** The play button stays clickable while loading, so a tap cancels a connect or reconnect. */
 @Composable
 fun PortraitContent(
     title: String,
@@ -27,37 +23,6 @@ fun PortraitContent(
     modifier: Modifier = Modifier,
     logo: @Composable () -> Unit = {},
     nextTrackPrefix: String = "Next",
-) {
-    PortraitContentLayout(title, nextTrackTitle, artworkUri, modifier, logo, nextTrackPrefix) {
-        PlayButton(playback = playback, onClick = onPlayClick)
-    }
-}
-
-@Composable
-fun PortraitContent(
-    title: String,
-    nextTrackTitle: String,
-    buttonState: PlayerButtonState,
-    artworkUri: String,
-    onPlayClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    logo: @Composable () -> Unit = {},
-    nextTrackPrefix: String = "Next",
-) {
-    PortraitContentLayout(title, nextTrackTitle, artworkUri, modifier, logo, nextTrackPrefix) {
-        PlayButton(buttonState = buttonState, onClick = onPlayClick)
-    }
-}
-
-@Composable
-private fun PortraitContentLayout(
-    title: String,
-    nextTrackTitle: String,
-    artworkUri: String,
-    modifier: Modifier,
-    logo: @Composable () -> Unit,
-    nextTrackPrefix: String,
-    playButton: @Composable () -> Unit,
 ) {
     Column(
         modifier = modifier,
@@ -82,7 +47,10 @@ private fun PortraitContentLayout(
             prefix = nextTrackPrefix,
         )
         Spacer(modifier = Modifier.height(32.dp))
-        playButton()
+        PlayButton(
+            playback = playback,
+            onClick = onPlayClick,
+        )
     }
 }
 
@@ -92,7 +60,7 @@ private fun PortraitContentPreview() {
     PortraitContent(
         title = "Massive Attack — Teardrop",
         nextTrackTitle = "Next: Portishead — Glory Box",
-        buttonState = PlayerButtonState.PLAYING,
+        playback = Playback.Playing,
         artworkUri = "",
         onPlayClick = {},
     )

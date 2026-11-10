@@ -1,7 +1,7 @@
 package net.afanasev.radioplayer.core.analytics
 
-import net.afanasev.radioplayer.core.player.ErrorReason
-import net.afanasev.radioplayer.core.player.Playback
+import net.afanasev.radioplayer.core.player.fsm.ErrorReason
+import net.afanasev.radioplayer.core.player.fsm.Playback
 import net.afanasev.radioplayer.core.theme.PlayerTheme
 
 /**

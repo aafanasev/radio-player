@@ -1,4 +1,4 @@
-package net.afanasev.radioplayer.core.player
+package net.afanasev.radioplayer.core.player.fsm
 
 import android.content.ComponentName
 import android.content.Context
@@ -18,8 +18,9 @@ import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.launch
 import net.afanasev.radioplayer.core.analytics.PlayerAnalytics
 import net.afanasev.radioplayer.core.metadata.NowPlayingMetadataProvider
+import net.afanasev.radioplayer.core.player.PlaybackService
 
-/** Runs [PlayerEffect]s. Split out from [net.afanasev.radioplayer.core.RadioPlayer] so tests can fake it. */
+/** Runs [PlayerEffect]s. Split out from [RadioPlayer] so tests can fake it. */
 internal interface PlayerEffects {
     fun handle(effect: PlayerEffect)
 

@@ -7,8 +7,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import net.afanasev.radioplayer.core.RadioPlayer
 import net.afanasev.radioplayer.core.RadioPlayerHost
+import net.afanasev.radioplayer.core.player.fsm.PlayerEvent
+import net.afanasev.radioplayer.core.player.fsm.PlayerState
+import net.afanasev.radioplayer.core.player.fsm.RadioPlayer
 
 /** Thin adapter over the app-scoped [RadioPlayer]. */
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {

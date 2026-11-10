@@ -1,20 +1,20 @@
-package net.afanasev.radioplayer.core.player
+package net.afanasev.radioplayer.core.player.fsm
 
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import net.afanasev.radioplayer.core.player.AnalyticsEvent.PlayButtonClick
-import net.afanasev.radioplayer.core.player.AnalyticsEvent.PlaybackError
-import net.afanasev.radioplayer.core.player.AnalyticsEvent.Reconnect
-import net.afanasev.radioplayer.core.player.PlayerEffect.CancelConnectTimeout
-import net.afanasev.radioplayer.core.player.PlayerEffect.CancelRetry
-import net.afanasev.radioplayer.core.player.PlayerEffect.FetchNextTrack
-import net.afanasev.radioplayer.core.player.PlayerEffect.ReleaseController
-import net.afanasev.radioplayer.core.player.PlayerEffect.ScheduleRetry
-import net.afanasev.radioplayer.core.player.PlayerEffect.StartConnectTimeout
-import net.afanasev.radioplayer.core.player.PlayerEffect.StartPlayback
-import net.afanasev.radioplayer.core.player.PlayerEffect.StopForRetry
-import net.afanasev.radioplayer.core.player.PlayerEffect.StopPlayback
-import net.afanasev.radioplayer.core.player.PlayerEffect.TrackAnalytics
+import net.afanasev.radioplayer.core.player.fsm.AnalyticsEvent.PlayButtonClick
+import net.afanasev.radioplayer.core.player.fsm.AnalyticsEvent.PlaybackError
+import net.afanasev.radioplayer.core.player.fsm.AnalyticsEvent.Reconnect
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.CancelConnectTimeout
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.CancelRetry
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.FetchNextTrack
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.ReleaseController
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.ScheduleRetry
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.StartConnectTimeout
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.StartPlayback
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.StopForRetry
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.StopPlayback
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.TrackAnalytics
 
 /** Tuning for [reduce]. Internal on purpose: no host app has needed to change these yet. */
 internal data class PlayerPolicy(

@@ -11,7 +11,7 @@ import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import net.afanasev.radioplayer.core.analytics.PlayerAnalytics
-import net.afanasev.radioplayer.core.player.Playback
+import net.afanasev.radioplayer.core.player.fsm.Playback
 import net.afanasev.radioplayer.core.theme.PlayerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

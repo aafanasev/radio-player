@@ -1,4 +1,4 @@
-package net.afanasev.radioplayer.core.player
+package net.afanasev.radioplayer.core.player.fsm
 
 /**
  * Everything the UI needs to render the player. Playback status and now-playing info are
@@ -45,15 +45,3 @@ data class NowPlaying(
     val artworkUri: String? = null,
     val nextTrackTitle: String = "",
 )
-
-fun Playback.toButtonState(): PlayerButtonState = when (this) {
-    Playback.Disconnected,
-    Playback.Connecting,
-    Playback.Buffering,
-    is Playback.Reconnecting -> PlayerButtonState.LOADING
-
-    Playback.Idle,
-    is Playback.Error -> PlayerButtonState.PAUSED
-
-    Playback.Playing -> PlayerButtonState.PLAYING
-}

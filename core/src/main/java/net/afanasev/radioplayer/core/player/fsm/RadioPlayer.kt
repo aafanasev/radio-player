@@ -1,4 +1,4 @@
-package net.afanasev.radioplayer.core
+package net.afanasev.radioplayer.core.player.fsm
 
 import android.app.Application
 import android.content.Context
@@ -11,15 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import net.afanasev.radioplayer.core.player.PlayerEffectHandler
-import net.afanasev.radioplayer.core.player.PlayerEffects
-import net.afanasev.radioplayer.core.player.PlayerEvent
-import net.afanasev.radioplayer.core.player.PlayerPolicy
-import net.afanasev.radioplayer.core.player.PlayerState
-import net.afanasev.radioplayer.core.player.isActive
-import net.afanasev.radioplayer.core.player.reduce
-import net.afanasev.radioplayer.core.player.toSnapshot
-import net.afanasev.radioplayer.core.player.toTrackMetadata
+import net.afanasev.radioplayer.core.RadioPlayerHost
 
 /**
  * App-scoped player state machine. It outlives any screen, so playback changes made from the

@@ -1,6 +1,6 @@
 package net.afanasev.radioplayer.core.analytics
 
-import net.afanasev.radioplayer.core.player.Playback
+import net.afanasev.radioplayer.core.player.fsm.Playback
 import net.afanasev.radioplayer.core.theme.PlayerTheme
 
 object NoOpPlayerAnalytics : PlayerAnalytics {

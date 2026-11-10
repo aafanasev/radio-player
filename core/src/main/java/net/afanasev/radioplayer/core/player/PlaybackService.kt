@@ -26,9 +26,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import net.afanasev.radioplayer.core.RadioPlayer
 import net.afanasev.radioplayer.core.RadioPlayerConfig
 import net.afanasev.radioplayer.core.RadioPlayerHost
+import net.afanasev.radioplayer.core.player.fsm.PlayerEvent
+import net.afanasev.radioplayer.core.player.fsm.RadioPlayer
 
 private const val ROOT_ID = "root"
 private const val STATION_ID = "station"

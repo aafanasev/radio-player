@@ -1,4 +1,4 @@
-package net.afanasev.radioplayer.core
+package net.afanasev.radioplayer.core.player.fsm
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -7,13 +7,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import net.afanasev.radioplayer.core.player.Playback
-import net.afanasev.radioplayer.core.player.PlayerEffect
-import net.afanasev.radioplayer.core.player.PlayerEffects
-import net.afanasev.radioplayer.core.player.PlayerEvent
-import net.afanasev.radioplayer.core.player.PlayerPolicy
-import net.afanasev.radioplayer.core.player.PlayerSnapshot
-import net.afanasev.radioplayer.core.player.TrackMetadata
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
