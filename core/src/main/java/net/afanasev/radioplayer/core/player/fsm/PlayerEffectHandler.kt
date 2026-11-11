@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import net.afanasev.radioplayer.core.analytics.PlayerAnalytics
 import net.afanasev.radioplayer.core.metadata.NowPlayingMetadataProvider
 import net.afanasev.radioplayer.core.player.PlaybackService
+import net.afanasev.radioplayer.core.player.toButtonState
 
 /** Runs [PlayerEffect]s. Split out from [RadioPlayer] so tests can fake it. */
 internal interface PlayerEffects {
@@ -112,7 +113,7 @@ internal class PlayerEffectHandler(
             }
 
             is PlayerEffect.TrackAnalytics -> when (val event = effect.event) {
-                is AnalyticsEvent.PlayButtonClick -> analytics.onPlayButtonClick(event.playback)
+                is AnalyticsEvent.PlayButtonClick -> analytics.onPlayButtonClick(event.playback.toButtonState())
                 is AnalyticsEvent.PlaybackError -> analytics.onPlaybackError(event.reason, event.cause)
                 is AnalyticsEvent.Reconnect -> analytics.onReconnect(event.attempt, event.delayMs)
             }

@@ -12,36 +12,32 @@ import net.afanasev.radioplayer.core.player.fsm.PlayerEvent
 import net.afanasev.radioplayer.core.player.fsm.PlayerState
 import net.afanasev.radioplayer.core.player.fsm.RadioPlayer
 
-/** Thin adapter over the app-scoped [RadioPlayer]. */
+/**
+ * Adapts the app-scoped [RadioPlayer] state machine to UI flows. All playback logic lives in
+ * the state machine; this only maps its state and forwards clicks.
+ */
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val player = RadioPlayer.get(application)
+    private val defaultArtworkUri = (application as RadioPlayerHost).radioPlayerConfig.defaultArtworkUri
 
-    val defaultArtworkUri: String = (application as RadioPlayerHost).radioPlayerConfig.defaultArtworkUri
+    val artworkUri: StateFlow<String> = derive { it.nowPlaying.artworkUri ?: defaultArtworkUri }
 
-    val state: StateFlow<PlayerState> = player.state
+    val title: StateFlow<String> = derive { it.nowPlaying.title }
 
-    fun onPlayPause() = player.send(PlayerEvent.PlayPauseClicked)
+    val nextTrackTitle: StateFlow<String> = derive { it.nowPlaying.nextTrackTitle }
 
-    fun onRetry() = player.send(PlayerEvent.RetryClicked)
+    val buttonState: StateFlow<PlayerButtonState> = derive { it.playback.toButtonState() }
 
-    @Deprecated("Use onPlayPause()", ReplaceWith("onPlayPause()"))
-    fun playPause() = onPlayPause()
+    fun playPause() = player.send(PlayerEvent.PlayPauseClicked)
 
-    @Deprecated("Use state.nowPlaying.artworkUri ?: defaultArtworkUri")
-    val artworkUri: StateFlow<String> =
-        derive(defaultArtworkUri) { it.nowPlaying.artworkUri ?: defaultArtworkUri }
-
-    @Deprecated("Use state.nowPlaying.title")
-    val title: StateFlow<String> = derive("") { it.nowPlaying.title }
-
-    @Deprecated("Use state.nowPlaying.nextTrackTitle")
-    val nextTrackTitle: StateFlow<String> = derive("") { it.nowPlaying.nextTrackTitle }
-
-    @Deprecated("Use state.playback.toButtonState()")
-    val buttonState: StateFlow<PlayerButtonState> =
-        derive(PlayerButtonState.LOADING) { it.playback.toButtonState() }
-
-    private fun <T> derive(initial: T, transform: (PlayerState) -> T): StateFlow<T> =
-        player.state.map(transform).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
+    /**
+     * Starts from the player's current state, so returning to the screen shows no empty frame.
+     * While collected, the player keeps its `MediaController` connected; 5 s after the UI stops
+     * collecting it's released (unless playing), so the service can shut down.
+     */
+    private fun <T> derive(transform: (PlayerState) -> T): StateFlow<T> =
+        player.state
+            .map(transform)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), transform(player.state.value))
 }

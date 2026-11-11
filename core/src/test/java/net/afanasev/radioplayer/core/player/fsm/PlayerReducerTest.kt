@@ -102,8 +102,18 @@ class PlayerReducerTest {
     }
 
     @Test
-    fun `Disconnected ignores clicks and idle players`() {
-        assertUnchanged(state(Playback.Disconnected), PlayPauseClicked)
+    fun `Disconnected + PlayPauseClicked starts, connecting on demand`() {
+        // The button shows LOADING for both Disconnected and connecting, so a tap must work.
+        val next = reduce(state(Playback.Disconnected), PlayPauseClicked)
+        assertEquals(state(Playback.Connecting), next.state)
+        assertEquals(
+            listOf(StartPlayback(URL), StartConnectTimeout(10_000), TrackAnalytics(PlayButtonClick(Playback.Disconnected))),
+            next.effects,
+        )
+    }
+
+    @Test
+    fun `Disconnected ignores idle players`() {
         assertUnchanged(state(Playback.Disconnected), PlayerChanged(stopped))
     }
 

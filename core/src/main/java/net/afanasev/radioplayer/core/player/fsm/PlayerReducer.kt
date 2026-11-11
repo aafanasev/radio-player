@@ -97,8 +97,9 @@ internal fun reduce(state: PlayerState, event: PlayerEvent, policy: PlayerPolicy
 private fun onPlayPause(state: PlayerState, policy: PlayerPolicy): Next {
     val click = TrackAnalytics(PlayButtonClick(state.playback))
     return when (state.playback) {
-        Playback.Disconnected -> Next(state)
-        Playback.Idle, is Playback.Error -> start(state, policy)
+        // Disconnected too: the button can't tell it from loading, and StartPlayback connects
+        // a controller on demand.
+        Playback.Disconnected, Playback.Idle, is Playback.Error -> start(state, policy)
         Playback.Connecting, Playback.Buffering, is Playback.Reconnecting -> Next(
             state.copy(playback = Playback.Idle),
             listOf(StopPlayback, CancelConnectTimeout, CancelRetry, click),

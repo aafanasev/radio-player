@@ -14,14 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import net.afanasev.radioplayer.core.player.fsm.Playback
+import net.afanasev.radioplayer.core.player.PlayerButtonState
 
-/** The play button stays clickable while loading, so a tap cancels a connect or reconnect. */
 @Composable
 fun LandscapeContent(
     title: String,
     nextTrackTitle: String,
-    playback: Playback,
+    buttonState: PlayerButtonState,
     artworkUri: String,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -63,7 +62,7 @@ fun LandscapeContent(
             )
             Spacer(modifier = Modifier.height(24.dp))
             PlayButton(
-                playback = playback,
+                buttonState = buttonState,
                 onClick = onPlayClick,
             )
         }
@@ -76,7 +75,7 @@ private fun LandscapeContentPreview() {
     LandscapeContent(
         title = "Massive Attack — Teardrop",
         nextTrackTitle = "Next: Portishead — Glory Box",
-        playback = Playback.Playing,
+        buttonState = PlayerButtonState.PLAYING,
         artworkUri = "",
         onPlayClick = {},
     )
@@ -88,7 +87,7 @@ private fun LandscapeContentPreviewLoading() {
     LandscapeContent(
         title = "",
         nextTrackTitle = "",
-        playback = Playback.Connecting,
+        buttonState = PlayerButtonState.LOADING,
         artworkUri = "",
         onPlayClick = {},
     )

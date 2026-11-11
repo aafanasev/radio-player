@@ -66,32 +66,17 @@ automatically — no manifest changes needed on your side. Then compose the play
 
 ```kotlin
 val viewModel: PlayerViewModel = viewModel()
-val state by viewModel.state.collectAsState()
-
+val title by viewModel.title.collectAsState()
+// ...
 PortraitContent(
-    title = state.nowPlaying.title,
-    nextTrackTitle = state.nowPlaying.nextTrackTitle,
-    playback = state.playback,
-    artworkUri = state.nowPlaying.artworkUri ?: viewModel.defaultArtworkUri,
-    onPlayClick = viewModel::onPlayPause,
+    title = title,
+    nextTrackTitle = nextTrackTitle,
+    buttonState = buttonState,
+    artworkUri = artworkUri,
+    onPlayClick = viewModel::playPause,
     logo = { /* your branding */ },
 )
 ```
-
-### Player state
-
-Playback is driven by `RadioPlayer`, an app-scoped state machine (`RadioPlayer.get(context)`;
-`PlayerViewModel` is a thin adapter over it). It exposes a single `StateFlow<PlayerState>`:
-
-- `playback` — `Disconnected`, `Idle`, `Connecting`, `Playing`, `Buffering`,
-  `Reconnecting(attempt)` or `Error(reason)`. Network failures and stalled connects are retried
-  with backoff before giving up with `Error(NETWORK)`.
-- `nowPlaying` — title, artwork and next track, kept across pauses and errors.
-
-Because it lives outside any screen, starting or stopping from the notification, Bluetooth or
-Android Auto is reflected in the UI. Pass `playback` (rather than `buttonState`) to
-`PortraitContent`, `LandscapeContent` or `PlayButton` and the button stays clickable while
-loading, so a tap cancels a connect or reconnect.
 
 For a full-screen blurred-artwork backdrop, put `Background` behind the content. Until real
 artwork arrives it shows a placeholder — cycling neutral gradients by default, or whatever you
