@@ -39,11 +39,6 @@ internal fun reduce(state: PlayerState, event: PlayerEvent, policy: PlayerPolicy
     when (event) {
         PlayerEvent.PlayPauseClicked -> onPlayPause(state, policy)
 
-        PlayerEvent.RetryClicked -> when (state.playback) {
-            Playback.Idle, is Playback.Error -> start(state, policy)
-            else -> Next(state)
-        }
-
         is PlayerEvent.ControllerConnected -> onControllerConnected(state, event)
 
         is PlayerEvent.ControllerFailed -> {
@@ -97,9 +92,13 @@ internal fun reduce(state: PlayerState, event: PlayerEvent, policy: PlayerPolicy
 private fun onPlayPause(state: PlayerState, policy: PlayerPolicy): Next {
     val click = TrackAnalytics(PlayButtonClick(state.playback))
     return when (state.playback) {
-        // Disconnected too: the button can't tell it from loading, and StartPlayback connects
-        // a controller on demand.
-        Playback.Disconnected, Playback.Idle, is Playback.Error -> start(state, policy)
+        // Starts from Error too (that's the retry), and from Disconnected: the button can't tell
+        // it from loading, and StartPlayback connects a controller on demand.
+        Playback.Disconnected, Playback.Idle, is Playback.Error -> Next(
+            state.copy(playback = Playback.Connecting),
+            listOf(StartPlayback(policy.streamUrl), StartConnectTimeout(policy.connectTimeoutMs), click),
+        )
+
         Playback.Connecting, Playback.Buffering, is Playback.Reconnecting -> Next(
             state.copy(playback = Playback.Idle),
             listOf(StopPlayback, CancelConnectTimeout, CancelRetry, click),
@@ -108,15 +107,6 @@ private fun onPlayPause(state: PlayerState, policy: PlayerPolicy): Next {
         Playback.Playing -> Next(state.copy(playback = Playback.Idle), listOf(StopPlayback, click))
     }
 }
-
-private fun start(state: PlayerState, policy: PlayerPolicy) = Next(
-    state.copy(playback = Playback.Connecting),
-    listOf(
-        StartPlayback(policy.streamUrl),
-        StartConnectTimeout(policy.connectTimeoutMs),
-        TrackAnalytics(PlayButtonClick(state.playback)),
-    ),
-)
 
 private fun onControllerConnected(state: PlayerState, event: PlayerEvent.ControllerConnected): Next {
     val isPlaying = event.snapshot.isPlaying

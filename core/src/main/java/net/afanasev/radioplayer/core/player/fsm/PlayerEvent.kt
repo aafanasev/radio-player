@@ -6,8 +6,8 @@ import androidx.media3.common.Player
 
 sealed interface PlayerEvent {
     // user
+    /** Play button tapped: starts from Idle or Error (retry), stops or cancels otherwise. */
     data object PlayPauseClicked : PlayerEvent
-    data object RetryClicked : PlayerEvent
 
     // controller / service
     data class ControllerConnected(val snapshot: PlayerSnapshot, val metadata: TrackMetadata) : PlayerEvent

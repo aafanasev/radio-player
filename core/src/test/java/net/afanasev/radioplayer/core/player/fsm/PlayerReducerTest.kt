@@ -23,7 +23,6 @@ import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.MetadataChanged
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.NextTrackLoaded
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.PlayPauseClicked
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.PlayerChanged
-import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.RetryClicked
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.RetryDue
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.ServiceDestroyed
 import net.afanasev.radioplayer.core.player.toButtonState
@@ -134,22 +133,16 @@ class PlayerReducerTest {
     // --- Starting ---------------------------------------------------------------------------
 
     @Test
-    fun `Idle or Error + PlayPauseClicked or RetryClicked goes to Connecting`() {
+    fun `Idle or Error + PlayPauseClicked goes to Connecting`() {
+        // From Error this is the retry.
         for (from in listOf(Playback.Idle, Playback.Error(ErrorReason.NETWORK))) {
-            for (event in listOf(PlayPauseClicked, RetryClicked)) {
-                val next = reduce(state(from), event)
-                assertEquals(state(Playback.Connecting), next.state)
-                assertEquals(
-                    listOf(StartPlayback(URL), StartConnectTimeout(10_000), TrackAnalytics(PlayButtonClick(from))),
-                    next.effects,
-                )
-            }
+            val next = reduce(state(from), PlayPauseClicked)
+            assertEquals(state(Playback.Connecting), next.state)
+            assertEquals(
+                listOf(StartPlayback(URL), StartConnectTimeout(10_000), TrackAnalytics(PlayButtonClick(from))),
+                next.effects,
+            )
         }
-    }
-
-    @Test
-    fun `RetryClicked is ignored outside Idle and Error`() {
-        for (from in activeStates + Playback.Disconnected) assertUnchanged(state(from), RetryClicked)
     }
 
     // --- Stopping ---------------------------------------------------------------------------
