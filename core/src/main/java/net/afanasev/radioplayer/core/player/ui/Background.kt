@@ -69,28 +69,6 @@ fun Background(
     }
 }
 
-@Deprecated(
-    message = "Pass a placeholder instead.",
-    replaceWith = ReplaceWith(
-        "Background(artworkUri, defaultArtworkUri, modifier, " +
-            "placeholder = { GradientPlaceholder(modifier = it, gradients = gradients) })"
-    ),
-)
-@Composable
-fun Background(
-    artworkUri: String,
-    defaultArtworkUri: String,
-    gradients: List<Pair<Color, Color>>,
-    modifier: Modifier = Modifier,
-) {
-    Background(
-        artworkUri = artworkUri,
-        defaultArtworkUri = defaultArtworkUri,
-        modifier = modifier,
-        placeholder = { GradientPlaceholder(modifier = it, gradients = gradients) },
-    )
-}
-
 /**
  * Vertical gradient that starts from a random entry of [gradients] and moves to the next one
  * every 10 seconds. [gradients] defaults to two neutral gradients; pass your own for on-brand
