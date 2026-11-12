@@ -2,6 +2,7 @@ package net.afanasev.radioplayer.core.player.fsm
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.media3.common.Player
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +58,9 @@ class RadioPlayer internal constructor(
     init {
         scope.launch {
             for (event in events) {
-                val next = reduce(_state.value, event, policy)
+                val before = _state.value
+                val next = reduce(before, event, policy)
+                log(event, before, next)
                 _state.value = next.state
                 next.effects.forEach(effects::handle)
                 updateControllerDemand()
@@ -72,11 +75,32 @@ class RadioPlayer internal constructor(
         events.trySend(event)
     }
 
+    /**
+     * Logs each event that changes the state or produces effects, e.g.
+     * `PlayPauseClicked: Idle -> Connecting [StartPlayback(...), ...]`. Off by default; enable with
+     * `adb shell setprop log.tag.RadioPlayer DEBUG`.
+     */
+    private fun log(event: PlayerEvent, before: PlayerState, next: Next) {
+        if (!Log.isLoggable(TAG, Log.DEBUG)) return
+        if (next.state == before && next.effects.isEmpty()) return
+
+        val playback = if (next.state.playback == before.playback) {
+            "${before.playback}"
+        } else {
+            "${before.playback} -> ${next.state.playback}"
+        }
+        val nowPlaying = if (next.state.nowPlaying != before.nowPlaying) " ${next.state.nowPlaying}" else ""
+        val effects = if (next.effects.isEmpty()) "" else " ${next.effects}"
+        Log.d(TAG, "$event: $playback$nowPlaying$effects")
+    }
+
     private fun updateControllerDemand() {
         effects.setControllerNeeded(_state.subscriptionCount.value > 0 || _state.value.playback.isActive)
     }
 
     companion object {
+        private const val TAG = "RadioPlayer"
+
         @Volatile
         private var instance: RadioPlayer? = null
 
