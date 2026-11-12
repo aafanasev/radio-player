@@ -19,6 +19,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.afanasev.radioplayer.core.player.PlayerButtonState
 
+/**
+ * Always clickable: a tap while [PlayerButtonState.LOADING] cancels connecting or reconnecting.
+ * The loading state keeps the dimmed [disabledContainerColor] look.
+ */
 @Composable
 fun PlayButton(
     buttonState: PlayerButtonState,
@@ -28,11 +32,9 @@ fun PlayButton(
     disabledContainerColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
 ) {
     IconButton(
-        enabled = buttonState != PlayerButtonState.LOADING,
         onClick = onClick,
         colors = IconButtonDefaults.iconButtonColors(
-            containerColor = containerColor,
-            disabledContainerColor = disabledContainerColor,
+            containerColor = if (buttonState == PlayerButtonState.LOADING) disabledContainerColor else containerColor,
         ),
         modifier = modifier
             .size(96.dp)

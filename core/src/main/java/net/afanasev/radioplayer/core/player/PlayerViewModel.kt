@@ -1,96 +1,43 @@
 package net.afanasev.radioplayer.core.player
 
 import android.app.Application
-import android.content.ComponentName
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.guava.await
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import net.afanasev.radioplayer.core.RadioPlayerHost
+import net.afanasev.radioplayer.core.player.fsm.PlayerEvent
+import net.afanasev.radioplayer.core.player.fsm.PlayerState
+import net.afanasev.radioplayer.core.player.fsm.RadioPlayer
 
+/**
+ * Adapts the app-scoped [RadioPlayer] state machine to UI flows. All playback logic lives in
+ * the state machine; this only maps its state and forwards clicks.
+ */
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val host = application as RadioPlayerHost
-    private val config = host.radioPlayerConfig
+    private val player = RadioPlayer.get(application)
+    private val defaultArtworkUri = (application as RadioPlayerHost).radioPlayerConfig.defaultArtworkUri
 
-    private val _artworkUri = MutableStateFlow(config.defaultArtworkUri)
-    val artworkUri: StateFlow<String> = _artworkUri.asStateFlow()
+    val artworkUri: StateFlow<String> = derive { it.nowPlaying.artworkUri ?: defaultArtworkUri }
 
-    private val _title = MutableStateFlow("")
-    val title: StateFlow<String> = _title.asStateFlow()
+    val title: StateFlow<String> = derive { it.nowPlaying.title }
 
-    private val _nextTrackTitle = MutableStateFlow("")
-    val nextTrackTitle: StateFlow<String> = _nextTrackTitle.asStateFlow()
+    val nextTrackTitle: StateFlow<String> = derive { it.nowPlaying.nextTrackTitle }
 
-    private val _buttonState = MutableStateFlow(PlayerButtonState.PAUSED)
-    val buttonState: StateFlow<PlayerButtonState> = _buttonState.asStateFlow()
+    val buttonState: StateFlow<PlayerButtonState> = derive { it.playback.toButtonState() }
 
-    private var mediaController: MediaController? = null
+    fun playPause() = player.send(PlayerEvent.PlayPauseClicked)
 
-    init {
-        viewModelScope.launch {
-            val token =
-                SessionToken(application, ComponentName(application, PlaybackService::class.java))
-
-            mediaController =
-                MediaController.Builder(application, token).buildAsync().await().also {
-                    if (it.isPlaying) {
-                        _buttonState.value = PlayerButtonState.PLAYING
-                        setMetadata(it.mediaMetadata)
-                    }
-
-                    it.addListener(object : Player.Listener {
-                        override fun onIsPlayingChanged(playing: Boolean) {
-                            _buttonState.value =
-                                if (playing) PlayerButtonState.PLAYING else PlayerButtonState.PAUSED
-                        }
-
-                        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                            setMetadata(mediaMetadata)
-                        }
-                    })
-                }
-        }
-    }
-
-    fun playPause() {
-        host.playerAnalytics.onPlayButtonClick(_buttonState.value)
-
-        if (_buttonState.value == PlayerButtonState.PAUSED) {
-            _buttonState.value = PlayerButtonState.LOADING
-        }
-
-        mediaController?.let {
-            if (it.isPlaying) {
-                it.pause()
-            } else {
-                val mediaItem = MediaItem.fromUri(config.streamUrl)
-                it.setMediaItem(mediaItem)
-                it.prepare()
-                it.play()
-            }
-        }
-    }
-
-    private fun setMetadata(mediaMetadata: MediaMetadata) {
-        _title.value = mediaMetadata.title?.toString() ?: ""
-        _artworkUri.value = mediaMetadata.artworkUri?.toString() ?: config.defaultArtworkUri
-
-        viewModelScope.launch {
-            _nextTrackTitle.value = host.nowPlayingMetadataProvider.fetchNextTrack().orEmpty()
-        }
-    }
-
-    override fun onCleared() {
-        mediaController?.release()
-        mediaController = null
-    }
+    /**
+     * Starts from the player's current state, so returning to the screen shows no empty frame.
+     * While collected, the player keeps its `MediaController` connected; 5 s after the UI stops
+     * collecting it's released (unless playing), so the service can shut down.
+     */
+    private fun <T> derive(transform: (PlayerState) -> T): StateFlow<T> =
+        player.state
+            .map(transform)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), transform(player.state.value))
 }

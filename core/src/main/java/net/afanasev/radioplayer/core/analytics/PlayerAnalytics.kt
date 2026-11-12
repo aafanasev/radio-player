@@ -1,6 +1,7 @@
 package net.afanasev.radioplayer.core.analytics
 
 import net.afanasev.radioplayer.core.player.PlayerButtonState
+import net.afanasev.radioplayer.core.player.fsm.ErrorReason
 import net.afanasev.radioplayer.core.theme.PlayerTheme
 
 /**
@@ -21,4 +22,10 @@ interface PlayerAnalytics {
 
     /** The metadata provider's artwork didn't match the currently playing title after retrying. */
     fun onArtworkMismatch(attempt: Int, maxAttempts: Int, retryDelayMs: Long)
+
+    /** Playback ended up in an error state. [cause] is null when the stream timed out. */
+    fun onPlaybackError(reason: ErrorReason, cause: Throwable?) = Unit
+
+    /** The stream failed and reconnect [attempt] is scheduled in [delayMs]. */
+    fun onReconnect(attempt: Int, delayMs: Long) = Unit
 }
