@@ -8,15 +8,16 @@ import net.afanasev.radioplayer.core.analytics.PlayerAnalytics
 import net.afanasev.radioplayer.core.metadata.NoOpNowPlayingMetadataProvider
 import net.afanasev.radioplayer.core.metadata.NowPlayingMetadataProvider
 
-// OTON FM's radio.co stream (same as the otonfm app).
-private const val STREAM_URL = "https://s4.radio.co/s696f24a77/listen"
-private const val DEFAULT_ARTWORK_URI = "https://images.radio.co/station_logos/s696f24a77.20250505065303.jpg"
+// SomaFM's Groove Salad: a public stream that carries ICY title metadata, so the default
+// NoOpNowPlayingMetadataProvider still shows a real "now playing" title with zero backend.
+private const val STREAM_URL = "https://ice1.somafm.com/groovesalad-128-mp3"
+private const val DEFAULT_ARTWORK_URI = "https://api.somafm.com/logos/512x512/groovesalad512.png"
 
 class SampleApplication : Application(), RadioPlayerHost {
 
     override val radioPlayerConfig = RadioPlayerConfig(
         streamUrl = STREAM_URL,
-        stationName = "OTON FM (sample)",
+        stationName = "Groove Salad (sample)",
         defaultArtworkUri = DEFAULT_ARTWORK_URI,
         sessionActivityClass = SampleActivity::class.java,
     )
