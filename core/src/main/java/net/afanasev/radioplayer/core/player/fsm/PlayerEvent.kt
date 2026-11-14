@@ -20,6 +20,9 @@ sealed interface PlayerEvent {
 
     // effect results
     data class NextTrackLoaded(val forTitle: String, val nextTitle: String?) : PlayerEvent
+
+    /** [artworkUri] is null when the provider had none or failed; the default artwork shows then. */
+    data class ArtworkLoaded(val forTitle: String, val artworkUri: String?) : PlayerEvent
     data object ConnectTimedOut : PlayerEvent
     data class RetryDue(val attempt: Int) : PlayerEvent
 }
@@ -37,7 +40,11 @@ data class PlayerSnapshot(
     val error: PlaybackException? = null,
 )
 
-data class TrackMetadata(val title: String?, val artworkUri: String?)
+/**
+ * What the stream itself reports. Artwork isn't part of it: it comes from the
+ * [net.afanasev.radioplayer.core.metadata.NowPlayingMetadataProvider] via [PlayerEvent.ArtworkLoaded].
+ */
+data class TrackMetadata(val title: String?)
 
 internal fun Player.toSnapshot(error: PlaybackException? = playerError) =
     PlayerSnapshot(
@@ -48,4 +55,4 @@ internal fun Player.toSnapshot(error: PlaybackException? = playerError) =
     )
 
 internal fun MediaMetadata.toTrackMetadata() =
-    TrackMetadata(title = title?.toString(), artworkUri = artworkUri?.toString())
+    TrackMetadata(title = title?.toString())

@@ -21,6 +21,9 @@ internal sealed interface PlayerEffect {
     /** Cancels the previous fetch. */
     data class FetchNextTrack(val forTitle: String) : PlayerEffect
 
+    /** Cancels the previous fetch. */
+    data class FetchArtwork(val forTitle: String) : PlayerEffect
+
     data class StartConnectTimeout(val millis: Long) : PlayerEffect
     data object CancelConnectTimeout : PlayerEffect
     data class ScheduleRetry(val attempt: Int, val delayMs: Long) : PlayerEffect

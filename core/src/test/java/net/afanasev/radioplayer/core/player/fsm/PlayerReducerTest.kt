@@ -8,6 +8,7 @@ import net.afanasev.radioplayer.core.player.fsm.AnalyticsEvent.PlaybackError
 import net.afanasev.radioplayer.core.player.fsm.AnalyticsEvent.Reconnect
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.CancelConnectTimeout
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.CancelRetry
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.FetchArtwork
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.FetchNextTrack
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.ReleaseController
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.ScheduleRetry
@@ -20,6 +21,7 @@ import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.ConnectTimedOut
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.ControllerConnected
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.ControllerFailed
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.MetadataChanged
+import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.ArtworkLoaded
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.NextTrackLoaded
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.PlayPauseClicked
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent.PlayerChanged
@@ -78,16 +80,16 @@ class PlayerReducerTest {
     // --- Disconnected ---------------------------------------------------------------------
 
     @Test
-    fun `Disconnected + ControllerConnected playing goes to Playing and fetches next track`() {
-        val next = reduce(PlayerState(), ControllerConnected(playing, TrackMetadata("Song A", "art://a")))
+    fun `Disconnected + ControllerConnected playing goes to Playing and fetches artwork and next track`() {
+        val next = reduce(PlayerState(), ControllerConnected(playing, TrackMetadata("Song A")))
         assertEquals(Playback.Playing, next.state.playback)
-        assertEquals(NowPlaying("Song A", "art://a", ""), next.state.nowPlaying)
-        assertEquals(listOf(FetchNextTrack("Song A")), next.effects)
+        assertEquals(NowPlaying("Song A", null, ""), next.state.nowPlaying)
+        assertEquals(listOf(FetchArtwork("Song A"), FetchNextTrack("Song A")), next.effects)
     }
 
     @Test
     fun `Disconnected + ControllerConnected not playing goes to Idle`() {
-        val next = reduce(PlayerState(), ControllerConnected(stopped, TrackMetadata(null, null)))
+        val next = reduce(PlayerState(), ControllerConnected(stopped, TrackMetadata(null)))
         assertEquals(PlayerState(Playback.Idle), next.state)
         assertEquals(emptyList<PlayerEffect>(), next.effects)
     }
@@ -329,24 +331,40 @@ class PlayerReducerTest {
     // --- Now playing ------------------------------------------------------------------------
 
     @Test
-    fun `MetadataChanged with a new title resets next track and fetches it, in any state`() {
+    fun `MetadataChanged with a new title resets next track, keeps old artwork and fetches both, in any state`() {
         for (from in activeStates + Playback.Idle + Playback.Disconnected) {
-            val next = reduce(state(from), MetadataChanged(TrackMetadata("Song C", "art://c")))
-            assertEquals(PlayerState(from, NowPlaying("Song C", "art://c", "")), next.state)
-            assertEquals(listOf(FetchNextTrack("Song C")), next.effects)
+            val next = reduce(state(from), MetadataChanged(TrackMetadata("Song C")))
+            assertEquals(PlayerState(from, NowPlaying("Song C", "art://a", "")), next.state)
+            assertEquals(listOf(FetchArtwork("Song C"), FetchNextTrack("Song C")), next.effects)
         }
     }
 
     @Test
-    fun `MetadataChanged with the same title only updates artwork`() {
-        val next = reduce(state(Playback.Playing), MetadataChanged(TrackMetadata("Song A", "art://new")))
+    fun `MetadataChanged with the same title changes nothing`() {
+        assertUnchanged(state(Playback.Playing), MetadataChanged(TrackMetadata("Song A")))
+    }
+
+    @Test
+    fun `MetadataChanged without a title keeps now playing`() {
+        assertUnchanged(state(Playback.Connecting), MetadataChanged(TrackMetadata(null)))
+    }
+
+    @Test
+    fun `ArtworkLoaded for the current title sets it`() {
+        val next = reduce(state(Playback.Playing), ArtworkLoaded("Song A", "art://new"))
         assertEquals(NowPlaying("Song A", "art://new", "Song B"), next.state.nowPlaying)
         assertEquals(emptyList<PlayerEffect>(), next.effects)
     }
 
     @Test
-    fun `MetadataChanged without a title keeps now playing`() {
-        assertUnchanged(state(Playback.Connecting), MetadataChanged(TrackMetadata(null, null)))
+    fun `ArtworkLoaded without artwork falls back to the default`() {
+        val next = reduce(state(Playback.Playing), ArtworkLoaded("Song A", null))
+        assertEquals(null, next.state.nowPlaying.artworkUri)
+    }
+
+    @Test
+    fun `ArtworkLoaded for an older title is discarded`() {
+        assertUnchanged(state(Playback.Playing), ArtworkLoaded("Old song", "art://old"))
     }
 
     @Test
@@ -373,7 +391,7 @@ class PlayerReducerTest {
 
     @Test
     fun `ControllerConnected while active only updates now playing`() {
-        val next = reduce(state(Playback.Connecting), ControllerConnected(stopped, TrackMetadata("Song C", null)))
+        val next = reduce(state(Playback.Connecting), ControllerConnected(stopped, TrackMetadata("Song C")))
         assertEquals(Playback.Connecting, next.state.playback)
         assertEquals("Song C", next.state.nowPlaying.title)
     }

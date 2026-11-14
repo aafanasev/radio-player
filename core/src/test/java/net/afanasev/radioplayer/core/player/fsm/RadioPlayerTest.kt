@@ -31,7 +31,7 @@ class RadioPlayerTest {
         val effects = FakeEffects()
         val player = player(effects)
 
-        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(false, 1, false), TrackMetadata("A", null)))
+        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(false, 1, false), TrackMetadata("A")))
         player.send(PlayerEvent.PlayPauseClicked)
         runCurrent()
 
@@ -51,7 +51,7 @@ class RadioPlayerTest {
         runCurrent()
         assertEquals(true, effects.demand.last())
 
-        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(true, 3, true), TrackMetadata(null, null)))
+        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(true, 3, true), TrackMetadata(null)))
         runCurrent()
         observer.join() // saw Playing and stopped observing
         runCurrent()

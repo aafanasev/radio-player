@@ -32,6 +32,15 @@ class RadioPlayer internal constructor(
     /** Collecting this keeps a `MediaController` connected; see [PlayerEffects.setControllerNeeded]. */
     val state: StateFlow<PlayerState> = _state.asStateFlow()
 
+    private val _artworkUri = MutableStateFlow<String?>(null)
+
+    /**
+     * [NowPlaying.artworkUri] for [net.afanasev.radioplayer.core.player.PlaybackService] to put on
+     * the media session (notification, lock screen). A separate flow from [state] so the service
+     * collecting it doesn't count as an observer and keep the controller connected.
+     */
+    internal val artworkUri: StateFlow<String?> = _artworkUri.asStateFlow()
+
     private val events = Channel<PlayerEvent>(Channel.UNLIMITED)
     private val effects = effectsFactory(::send)
 
@@ -62,6 +71,7 @@ class RadioPlayer internal constructor(
                 val next = reduce(before, event, policy)
                 log(event, before, next)
                 _state.value = next.state
+                _artworkUri.value = next.state.nowPlaying.artworkUri
                 next.effects.forEach(effects::handle)
                 updateControllerDemand()
             }
