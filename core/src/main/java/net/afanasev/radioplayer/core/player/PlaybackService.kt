@@ -24,9 +24,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.afanasev.radioplayer.core.RadioPlayerConfig
 import net.afanasev.radioplayer.core.RadioPlayerHost
+import net.afanasev.radioplayer.core.player.fsm.Playback
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent
 import net.afanasev.radioplayer.core.player.fsm.RadioPlayer
 
@@ -152,16 +155,15 @@ class PlaybackService : MediaLibraryService() {
         // Feeds every playback change, whoever caused it, into the app-scoped state machine.
         player.addListener(radioPlayer.playerListener)
 
-        // The state machine decides the artwork; this mirrors it onto the session's media item for
-        // the notification and lock screen, also onto a new item when playback (re)starts.
+        // The state machine decides the artwork; this puts it on the session's media item for the
+        // notification and lock screen. Reaching Playing re-applies it, since (re)starting playback
+        // sets a fresh media item without it.
         serviceScope.launch {
-            radioPlayer.artworkUri.collect { showArtwork(player) }
+            radioPlayer.uncountedState
+                .map { it.nowPlaying.artworkUri to (it.playback == Playback.Playing) }
+                .distinctUntilChanged()
+                .collect { (artworkUri, _) -> showArtwork(player, artworkUri) }
         }
-        player.addListener(object : Player.Listener {
-            override fun onEvents(player: Player, events: Player.Events) {
-                if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) showArtwork(player)
-            }
-        })
 
         val sessionActivity = PendingIntent.getActivity(
             this,
@@ -176,8 +178,8 @@ class PlaybackService : MediaLibraryService() {
     }
 
     /** Replacing the item only when the artwork differs also stops this from looping on itself. */
-    private fun showArtwork(player: Player) {
-        val uri = (radioPlayer.artworkUri.value ?: config.defaultArtworkUri).toUri()
+    private fun showArtwork(player: Player, artworkUri: String?) {
+        val uri = (artworkUri ?: config.defaultArtworkUri).toUri()
         val currentItem = player.currentMediaItem ?: return
         if (currentItem.mediaMetadata.artworkUri == uri) return
         val updatedMetadata = currentItem.mediaMetadata.buildUpon()

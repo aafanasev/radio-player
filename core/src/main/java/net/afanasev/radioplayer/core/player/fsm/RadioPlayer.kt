@@ -8,9 +8,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.afanasev.radioplayer.core.RadioPlayerHost
 
@@ -32,14 +37,21 @@ class RadioPlayer internal constructor(
     /** Collecting this keeps a `MediaController` connected; see [PlayerEffects.setControllerNeeded]. */
     val state: StateFlow<PlayerState> = _state.asStateFlow()
 
-    private val _artworkUri = MutableStateFlow<String?>(null)
+    private val uncountedObservers = MutableStateFlow(0)
 
     /**
-     * [NowPlaying.artworkUri] for [net.afanasev.radioplayer.core.player.PlaybackService] to put on
-     * the media session (notification, lock screen). A separate flow from [state] so the service
-     * collecting it doesn't count as an observer and keep the controller connected.
+     * [state] for [net.afanasev.radioplayer.core.player.PlaybackService], which lives as long as
+     * playback: collecting it doesn't count as an observer, or the controller would stay connected
+     * and the service could never shut down.
      */
-    internal val artworkUri: StateFlow<String?> = _artworkUri.asStateFlow()
+    internal val uncountedState: Flow<PlayerState> = flow {
+        uncountedObservers.update { it + 1 }
+        try {
+            emitAll(state)
+        } finally {
+            uncountedObservers.update { it - 1 }
+        }
+    }
 
     private val events = Channel<PlayerEvent>(Channel.UNLIMITED)
     private val effects = effectsFactory(::send)
@@ -71,13 +83,12 @@ class RadioPlayer internal constructor(
                 val next = reduce(before, event, policy)
                 log(event, before, next)
                 _state.value = next.state
-                _artworkUri.value = next.state.nowPlaying.artworkUri
                 next.effects.forEach(effects::handle)
                 updateControllerDemand()
             }
         }
         scope.launch {
-            _state.subscriptionCount.collect { updateControllerDemand() }
+            combine(_state.subscriptionCount, uncountedObservers) { _, _ -> }.collect { updateControllerDemand() }
         }
     }
 
@@ -105,7 +116,8 @@ class RadioPlayer internal constructor(
     }
 
     private fun updateControllerDemand() {
-        effects.setControllerNeeded(_state.subscriptionCount.value > 0 || _state.value.playback.isActive)
+        val observers = _state.subscriptionCount.value - uncountedObservers.value
+        effects.setControllerNeeded(observers > 0 || _state.value.playback.isActive)
     }
 
     companion object {
