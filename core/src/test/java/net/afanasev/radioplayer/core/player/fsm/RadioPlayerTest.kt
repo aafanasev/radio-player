@@ -31,7 +31,7 @@ class RadioPlayerTest {
         val effects = FakeEffects()
         val player = player(effects)
 
-        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(false, 1, false), TrackMetadata("A", null)))
+        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(false, 1, false), TrackMetadata("A")))
         player.send(PlayerEvent.PlayPauseClicked)
         runCurrent()
 
@@ -51,7 +51,7 @@ class RadioPlayerTest {
         runCurrent()
         assertEquals(true, effects.demand.last())
 
-        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(true, 3, true), TrackMetadata(null, null)))
+        player.send(PlayerEvent.ControllerConnected(PlayerSnapshot(true, 3, true), TrackMetadata(null)))
         runCurrent()
         observer.join() // saw Playing and stopped observing
         runCurrent()
@@ -61,5 +61,23 @@ class RadioPlayerTest {
         runCurrent()
         assertEquals(Playback.Idle, player.state.value.playback)
         assertEquals(false, effects.demand.last())
+    }
+
+    @Test
+    fun `collecting uncountedState doesn't make the controller needed`() = runTest {
+        val effects = FakeEffects()
+        val player = player(effects)
+        val service = launch { player.uncountedState.collect {} }
+        runCurrent()
+        assertEquals(false, effects.demand.last())
+
+        val ui = launch { player.state.collect {} }
+        runCurrent()
+        assertEquals(true, effects.demand.last())
+
+        ui.cancel()
+        runCurrent()
+        assertEquals("only the service is left", false, effects.demand.last())
+        service.cancel()
     }
 }

@@ -22,12 +22,14 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.afanasev.radioplayer.core.RadioPlayerConfig
 import net.afanasev.radioplayer.core.RadioPlayerHost
+import net.afanasev.radioplayer.core.player.fsm.Playback
 import net.afanasev.radioplayer.core.player.fsm.PlayerEvent
 import net.afanasev.radioplayer.core.player.fsm.RadioPlayer
 
@@ -41,8 +43,6 @@ private const val STATION_ID = "station"
 class PlaybackService : MediaLibraryService() {
 
     private var mediaLibrarySession: MediaLibrarySession? = null
-    private var artworkJob: Job? = null
-    private var lastFetchedTitle: String? = null
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val host by lazy { application as RadioPlayerHost }
@@ -155,33 +155,15 @@ class PlaybackService : MediaLibraryService() {
         // Feeds every playback change, whoever caused it, into the app-scoped state machine.
         player.addListener(radioPlayer.playerListener)
 
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_IDLE) {
-                    lastFetchedTitle = null
-                }
-            }
-
-            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                val title = mediaMetadata.title?.toString()
-                if (title == null || title == lastFetchedTitle) return
-                lastFetchedTitle = title
-
-                artworkJob?.cancel()
-                artworkJob = serviceScope.launch {
-                    val uri = host.nowPlayingMetadataProvider.fetchArtworkUri(title)
-                        ?: config.defaultArtworkUri
-                    val currentItem = player.currentMediaItem ?: return@launch
-                    val updatedMetadata = currentItem.mediaMetadata.buildUpon()
-                        .setArtworkUri(uri.toUri())
-                        .build()
-                    player.replaceMediaItem(
-                        player.currentMediaItemIndex,
-                        currentItem.buildUpon().setMediaMetadata(updatedMetadata).build()
-                    )
-                }
-            }
-        })
+        // The state machine decides the artwork; this puts it on the session's media item for the
+        // notification and lock screen. Reaching Playing re-applies it, since (re)starting playback
+        // sets a fresh media item without it.
+        serviceScope.launch {
+            radioPlayer.uncountedState
+                .map { it.nowPlaying.artworkUri to (it.playback == Playback.Playing) }
+                .distinctUntilChanged()
+                .collect { (artworkUri, _) -> showArtwork(player, artworkUri) }
+        }
 
         val sessionActivity = PendingIntent.getActivity(
             this,
@@ -195,8 +177,21 @@ class PlaybackService : MediaLibraryService() {
             .build()
     }
 
+    /** Replacing the item only when the artwork differs also stops this from looping on itself. */
+    private fun showArtwork(player: Player, artworkUri: String?) {
+        val uri = (artworkUri ?: config.defaultArtworkUri).toUri()
+        val currentItem = player.currentMediaItem ?: return
+        if (currentItem.mediaMetadata.artworkUri == uri) return
+        val updatedMetadata = currentItem.mediaMetadata.buildUpon()
+            .setArtworkUri(uri)
+            .build()
+        player.replaceMediaItem(
+            player.currentMediaItemIndex,
+            currentItem.buildUpon().setMediaMetadata(updatedMetadata).build(),
+        )
+    }
+
     private fun destroyMediaSession() {
-        artworkJob?.cancel()
         serviceScope.cancel()
         mediaLibrarySession?.let {
             it.player.removeListener(radioPlayer.playerListener)

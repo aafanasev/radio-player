@@ -7,6 +7,7 @@ import net.afanasev.radioplayer.core.player.fsm.AnalyticsEvent.PlaybackError
 import net.afanasev.radioplayer.core.player.fsm.AnalyticsEvent.Reconnect
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.CancelConnectTimeout
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.CancelRetry
+import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.FetchArtwork
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.FetchNextTrack
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.ReleaseController
 import net.afanasev.radioplayer.core.player.fsm.PlayerEffect.ScheduleRetry
@@ -69,6 +70,13 @@ internal fun reduce(state: PlayerState, event: PlayerEvent, policy: PlayerPolicy
         is PlayerEvent.NextTrackLoaded ->
             if (event.forTitle == state.nowPlaying.title) {
                 Next(state.copy(nowPlaying = state.nowPlaying.copy(nextTrackTitle = event.nextTitle.orEmpty())))
+            } else {
+                Next(state) // stale: the track changed while fetching
+            }
+
+        is PlayerEvent.ArtworkLoaded ->
+            if (event.forTitle == state.nowPlaying.title) {
+                Next(state.copy(nowPlaying = state.nowPlaying.copy(artworkUri = event.artworkUri)))
             } else {
                 Next(state) // stale: the track changed while fetching
             }
@@ -221,15 +229,14 @@ private fun reconnectOrFail(
 /**
  * A missing title keeps the current now-playing info: the player clears its metadata on
  * stop/re-prepare, and the screen shouldn't go blank in between. A new title resets the
- * next-track line and fetches it again.
+ * next-track line and fetches both it and the artwork; the previous artwork stays until the new
+ * one arrives, so the screen doesn't flash the default in between.
  */
 private fun applyMetadata(current: NowPlaying, metadata: TrackMetadata): Pair<NowPlaying, List<PlayerEffect>> {
     val title = metadata.title?.takeIf { it.isNotBlank() } ?: return current to emptyList()
-    return if (title != current.title) {
-        NowPlaying(title = title, artworkUri = metadata.artworkUri) to listOf(FetchNextTrack(title))
-    } else {
-        current.copy(artworkUri = metadata.artworkUri ?: current.artworkUri) to emptyList()
-    }
+    if (title == current.title) return current to emptyList()
+    return NowPlaying(title = title, artworkUri = current.artworkUri) to
+        listOf(FetchArtwork(title), FetchNextTrack(title))
 }
 
 internal fun PlaybackException.toErrorReason(): ErrorReason = when (errorCode) {
